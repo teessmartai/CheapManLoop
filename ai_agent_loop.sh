@@ -4,28 +4,84 @@ set -euo pipefail
 
 # Configuration
 AGENT_COMMAND="${1:-}"
-MAX_ITERATIONS="${2:-10}"
-PROMPT_FILE="${3:-prompt.md}"
+USER_PROMPT="${2:-}"
+COMPLETION_CRITERIA="${3:-}"
+MAX_ITERATIONS="${4:-10}"
+AGENT_PROMPT_FILE="${5:-agent_prompt.md}"
+
+# Script directory (for finding agent_prompt.md)
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Usage check
-if [ -z "$AGENT_COMMAND" ]; then
-    echo "Usage: $0 <agent_command> [max_iterations] [prompt_file]"
-    echo "Example: $0 './my-agent' 10 prompt.md"
+if [ -z "$AGENT_COMMAND" ] || [ -z "$USER_PROMPT" ] || [ -z "$COMPLETION_CRITERIA" ]; then
+    echo "Usage: $0 <agent_command> <user_prompt> <completion_criteria> [max_iterations] [agent_prompt_file]"
+    echo ""
+    echo "Arguments:"
+    echo "  agent_command       Command to run the AI agent (e.g., './my-agent' or 'claude')"
+    echo "  user_prompt         The task prompt (text or @filename to read from file)"
+    echo "  completion_criteria Criteria for task completion (text or @filename to read from file)"
+    echo "  max_iterations      Maximum loop iterations (default: 10)"
+    echo "  agent_prompt_file   Agent system prompt file (default: agent_prompt.md)"
+    echo ""
+    echo "Examples:"
+    echo "  $0 'claude' 'Fix the login bug' 'All tests pass and login works'"
+    echo "  $0 './my-agent' @task.md @criteria.md 20"
     exit 1
 fi
 
-# Verify prompt file exists
-if [ ! -f "$PROMPT_FILE" ]; then
-    echo "Error: Prompt file '$PROMPT_FILE' not found"
-    exit 1
+# Function to resolve prompt content (supports @filename syntax)
+resolve_content() {
+    local content="$1"
+    if [[ "$content" == @* ]]; then
+        local filename="${content:1}"
+        if [ ! -f "$filename" ]; then
+            echo "Error: File '$filename' not found" >&2
+            exit 1
+        fi
+        cat "$filename"
+    else
+        echo "$content"
+    fi
+}
+
+# Resolve user prompt and completion criteria
+USER_PROMPT_CONTENT=$(resolve_content "$USER_PROMPT")
+COMPLETION_CRITERIA_CONTENT=$(resolve_content "$COMPLETION_CRITERIA")
+
+# Resolve agent prompt file path (check script dir if not found in current dir)
+if [ ! -f "$AGENT_PROMPT_FILE" ]; then
+    if [ -f "$SCRIPT_DIR/$AGENT_PROMPT_FILE" ]; then
+        AGENT_PROMPT_FILE="$SCRIPT_DIR/$AGENT_PROMPT_FILE"
+    else
+        echo "Error: Agent prompt file '$AGENT_PROMPT_FILE' not found"
+        exit 1
+    fi
 fi
+
+# Build the combined prompt by substituting placeholders
+build_combined_prompt() {
+    local agent_prompt
+    agent_prompt=$(cat "$AGENT_PROMPT_FILE")
+
+    # Replace placeholders with actual content
+    agent_prompt="${agent_prompt//\{COMPLETION_CRITERIA\}/$COMPLETION_CRITERIA_CONTENT}"
+    agent_prompt="${agent_prompt//\{USER_PROMPT\}/$USER_PROMPT_CONTENT}"
+
+    echo "$agent_prompt"
+}
 
 echo "========================================="
 echo "AI Agent Loop Script"
 echo "========================================="
 echo "Agent Command: $AGENT_COMMAND"
 echo "Max Iterations: $MAX_ITERATIONS"
-echo "Prompt File: $PROMPT_FILE"
+echo "Agent Prompt File: $AGENT_PROMPT_FILE"
+echo "========================================="
+echo "User Task:"
+echo "$USER_PROMPT_CONTENT"
+echo "========================================="
+echo "Completion Criteria:"
+echo "$COMPLETION_CRITERIA_CONTENT"
 echo "========================================="
 echo ""
 
@@ -108,8 +164,9 @@ while [ $iteration -lt $MAX_ITERATIONS ]; do
     echo "[Iteration $iteration/$MAX_ITERATIONS] Starting at $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
     echo "----------------------------------------"
 
-    # Run the AI agent with the prompt
-    output=$(cat "$PROMPT_FILE" | $AGENT_COMMAND 2>&1 || true)
+    # Build and send the combined prompt to the agent
+    combined_prompt=$(build_combined_prompt)
+    output=$(echo "$combined_prompt" | $AGENT_COMMAND 2>&1 || true)
 
     # Log the output
     echo "$output"
@@ -118,7 +175,7 @@ while [ $iteration -lt $MAX_ITERATIONS ]; do
     # Check for completion marker
     if echo "$output" | grep -q "TASK_COMPLETE"; then
         echo "========================================="
-        echo "✓ Task completed successfully!"
+        echo "Task completed successfully!"
         echo "Total iterations: $iteration"
         echo "Finished at: $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
         echo "========================================="
@@ -127,7 +184,7 @@ while [ $iteration -lt $MAX_ITERATIONS ]; do
 
     # Check for rate limit
     if echo "$output" | grep -iq "You've hit your limit"; then
-        echo "⚠ Rate limit detected!"
+        echo "Rate limit detected!"
 
         # Calculate sleep duration
         sleep_duration=$(calculate_sleep_duration "$output")
@@ -153,7 +210,7 @@ done
 
 # Max iterations reached without completion
 echo "========================================="
-echo "⚠ Maximum iterations ($MAX_ITERATIONS) reached without completion"
+echo "Maximum iterations ($MAX_ITERATIONS) reached without completion"
 echo "Finished at: $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
 echo "========================================="
 exit 1

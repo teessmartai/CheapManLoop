@@ -2,11 +2,15 @@
 
 # Test AI agent for demonstrating the ai_agent_loop.sh script
 # This simulates an AI agent that:
+# - Reads prompt from stdin
 # - Tracks progress in a file
 # - Sometimes hits rate limits
 # - Eventually completes the task
 
 PROGRESS_FILE="test_progress.txt"
+
+# Read prompt from stdin (consume it)
+prompt=$(cat)
 
 # Initialize progress if it doesn't exist
 if [ ! -f "$PROGRESS_FILE" ]; then
@@ -17,6 +21,7 @@ fi
 progress=$(cat "$PROGRESS_FILE")
 
 echo "=== Test AI Agent ==="
+echo "Received prompt (first 100 chars): ${prompt:0:100}..."
 echo "Current progress: $progress/5 steps completed"
 
 # Simulate rate limit on iteration 3
