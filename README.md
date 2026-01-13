@@ -104,6 +104,99 @@ The test agent will:
 - Your AI agent binary or script
 - Agent prompt file (default: agent_prompt.md)
 
+## Docker Usage
+
+Run the agent in a Docker container that automatically clones a repo, makes changes, and creates a PR.
+
+### Build the Image
+
+```bash
+docker build -t cheap_man_loop .
+```
+
+### Run the Container
+
+```bash
+docker run \
+  -e GITHUB_TOKEN=ghp_your_token_here \
+  -e REPO_URL=https://github.com/owner/repo \
+  -e GIT_USER_NAME="Your Name" \
+  -e GIT_USER_EMAIL="your@email.com" \
+  cheap_man_loop \
+  'Fix the authentication bug in login.py' \
+  'All tests pass and a PR is created with the fix'
+```
+
+### Environment Variables
+
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `GITHUB_TOKEN` | Yes | - | GitHub Personal Access Token with `repo` scope |
+| `REPO_URL` | Yes | - | Repository HTTPS URL (e.g., `https://github.com/owner/repo`) |
+| `GIT_USER_NAME` | No | `AI Agent` | Git user name for commits |
+| `GIT_USER_EMAIL` | No | `agent@example.com` | Git user email for commits |
+| `BRANCH` | No | `ai-agent-<timestamp>` | Branch name to create |
+| `AGENT_COMMAND` | No | `claude` | AI agent command to run |
+| `MAX_ITERATIONS` | No | `10` | Maximum loop iterations |
+
+### Examples
+
+```bash
+# Basic usage - fix a bug and create PR
+docker run \
+  -e GITHUB_TOKEN=$GITHUB_TOKEN \
+  -e REPO_URL=https://github.com/myorg/myrepo \
+  cheap_man_loop \
+  'Fix the null pointer exception in UserService.java' \
+  'Bug is fixed, tests pass, PR created'
+
+# Specify a custom branch name
+docker run \
+  -e GITHUB_TOKEN=$GITHUB_TOKEN \
+  -e REPO_URL=https://github.com/myorg/myrepo \
+  -e BRANCH=fix/auth-bug \
+  cheap_man_loop \
+  'Fix authentication bypass vulnerability' \
+  'Security fix implemented with tests, PR created for review'
+
+# Use a different AI agent with more iterations
+docker run \
+  -e GITHUB_TOKEN=$GITHUB_TOKEN \
+  -e REPO_URL=https://github.com/myorg/myrepo \
+  -e AGENT_COMMAND="./my-custom-agent" \
+  -e MAX_ITERATIONS=20 \
+  cheap_man_loop \
+  'Implement dark mode feature' \
+  'Dark mode toggle works, CSS variables used, PR created'
+```
+
+### Getting a GitHub Token
+
+1. Go to GitHub Settings > Developer settings > Personal access tokens > Tokens (classic)
+2. Click "Generate new token (classic)"
+3. Select the `repo` scope (full control of private repositories)
+4. Copy the generated token and use it as `GITHUB_TOKEN`
+
+### Security Notes
+
+- **Never commit your `GITHUB_TOKEN`** - always pass it as an environment variable
+- Use tokens with minimal required scopes
+- Consider using GitHub's fine-grained tokens for more restrictive permissions
+- The token is used in-memory only and is not persisted in the container
+
+### How It Works
+
+1. Container starts and validates required environment variables
+2. Configures git with provided credentials
+3. Clones the specified repository
+4. Creates a new branch (or uses specified branch)
+5. Runs the `cheap_man_loop.sh` with enhanced completion criteria that include:
+   - Committing changes
+   - Pushing to the remote branch
+   - Creating a pull request using GitHub CLI (`gh`)
+6. Agent works iteratively until completion criteria are met
+7. Container exits with success (0) or failure (1) status
+
 ## Notes
 
 - The script does not persist state - the AI agent should track its own progress in `AGENT_PROGRESS.md`
