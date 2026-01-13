@@ -16,7 +16,7 @@ A bash script that continuously runs an AI agent in a loop for software developm
 ## Usage
 
 ```bash
-./ai_agent_loop.sh <agent_command> <user_prompt> <completion_criteria> [max_iterations] [agent_prompt_file]
+./cheap_man_loop.sh <agent_command> <user_prompt> <completion_criteria> [max_iterations] [agent_prompt_file]
 ```
 
 ### Parameters
@@ -31,16 +31,16 @@ A bash script that continuously runs an AI agent in a loop for software developm
 
 ```bash
 # Simple inline task with completion criteria
-./ai_agent_loop.sh "claude" "Fix the login bug in auth.js" "All tests pass and users can log in"
+./cheap_man_loop.sh "claude" "Fix the login bug in auth.js" "All tests pass and users can log in"
 
 # Using file-based prompts with @filename syntax
-./ai_agent_loop.sh "claude" @task.md @criteria.md
+./cheap_man_loop.sh "claude" @task.md @criteria.md
 
 # Custom max iterations
-./ai_agent_loop.sh "./my-agent" "Refactor the database layer" "Code compiles and all tests pass" 20
+./cheap_man_loop.sh "./my-agent" "Refactor the database layer" "Code compiles and all tests pass" 20
 
 # Using with a Python agent
-./ai_agent_loop.sh "python agent.py" @feature_request.md "Feature implemented and documented" 15
+./cheap_man_loop.sh "python agent.py" @feature_request.md "Feature implemented and documented" 15
 ```
 
 ## How It Works
@@ -85,7 +85,7 @@ A test agent (`test_agent.sh`) is included to demonstrate the script functionali
 
 ```bash
 # Run the test (will simulate rate limit and completion)
-./ai_agent_loop.sh "./test_agent.sh" "Complete the test task" "All 5 steps completed"
+./cheap_man_loop.sh "./test_agent.sh" "Complete the test task" "All 5 steps completed"
 ```
 
 The test agent will:

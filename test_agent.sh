@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Test AI agent for demonstrating the ai_agent_loop.sh script
+# Test AI agent for demonstrating the cheap_man_loop.sh script
 # This simulates an AI agent that:
 # - Reads prompt from stdin
 # - Tracks progress in a file
