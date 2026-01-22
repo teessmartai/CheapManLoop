@@ -155,6 +155,11 @@ format_duration() {
     fi
 }
 
+# Create a temporary file to capture output while streaming to logs
+# This allows real-time output (visible in Docker logs) while still capturing for processing
+output_file=$(mktemp)
+trap "rm -f '$output_file'" EXIT
+
 # Main loop
 iteration=0
 
@@ -166,10 +171,13 @@ while [ $iteration -lt $MAX_ITERATIONS ]; do
 
     # Build and send the combined prompt to the agent
     combined_prompt=$(build_combined_prompt)
-    output=$(echo "$combined_prompt" | $AGENT_COMMAND 2>&1 || true)
 
-    # Log the output
-    echo "$output"
+    # Run agent and stream output in real-time using tee
+    # This ensures logs appear immediately in Docker logs while also capturing for processing
+    echo "$combined_prompt" | $AGENT_COMMAND 2>&1 | tee "$output_file" || true
+
+    # Read captured output for processing
+    output=$(cat "$output_file")
     echo ""
 
     # Check for completion marker
