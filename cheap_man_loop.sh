@@ -155,10 +155,12 @@ format_duration() {
     fi
 }
 
-# Create a temporary file to capture output while streaming to logs
-# This allows real-time output (visible in Docker logs) while still capturing for processing
+# Create temporary files for capturing output
+# output_file: captures agent output for processing
+# prompt_file: holds the prompt to feed to the agent
 output_file=$(mktemp)
-trap "rm -f '$output_file'" EXIT
+prompt_file=$(mktemp)
+trap "rm -f '$output_file' '$prompt_file'" EXIT
 
 # Main loop
 iteration=0
@@ -171,10 +173,14 @@ while [ $iteration -lt $MAX_ITERATIONS ]; do
 
     # Build and send the combined prompt to the agent
     combined_prompt=$(build_combined_prompt)
+    echo "$combined_prompt" > "$prompt_file"
 
-    # Run agent and stream output in real-time using tee
-    # This ensures logs appear immediately in Docker logs while also capturing for processing
-    echo "$combined_prompt" | $AGENT_COMMAND 2>&1 | tee "$output_file" || true
+    # Run agent in a pseudo-terminal using 'script' to capture ALL output
+    # This is necessary because many CLI tools (like claude) write directly to TTY
+    # which bypasses normal stdout/stderr pipes
+    # script -q: quiet mode (no "Script started/done" messages)
+    # script outputs to terminal in real-time AND captures to file
+    script -q -c "$AGENT_COMMAND < '$prompt_file'" "$output_file" 2>&1 || true
 
     # Read captured output for processing
     output=$(cat "$output_file")
