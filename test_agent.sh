@@ -27,7 +27,7 @@ echo "Current progress: $progress/5 steps completed"
 # Simulate rate limit on iteration 3
 if [ "$progress" -eq 2 ]; then
     echo ""
-    echo "You've hit your limit. Limit resets at 11 pm (UTC)"
+    echo "You've hit your limit · resets 11pm (UTC)"
     exit 0
 fi
 

@@ -89,9 +89,9 @@ echo ""
 calculate_sleep_duration() {
     local message="$1"
 
-    # Extract time from message like "Limit resets at 4 pm (UTC)"
-    if echo "$message" | grep -iq "Limit resets at"; then
-        local time_str=$(echo "$message" | grep -oiE "[0-9]{1,2} (am|pm)" | head -1)
+    # Extract time from message like "You've hit your limit · resets 9am (UTC)"
+    if echo "$message" | grep -iq "resets [0-9]"; then
+        local time_str=$(echo "$message" | grep -oiE "[0-9]{1,2}(am|pm)" | head -1)
 
         if [ -z "$time_str" ]; then
             echo "Warning: Could not parse reset time from message. Defaulting to 1 hour sleep."
