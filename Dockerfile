@@ -35,6 +35,7 @@ RUN chmod +x /app/cheap_man_loop.sh /app/docker-entrypoint.sh
 # REPO_URL - Repository to clone (e.g., https://github.com/owner/repo)
 # AGENT_COMMAND - The AI agent command (default: claude)
 
+ENV PATH="/app:${PATH}"
 ENV AGENT_COMMAND="claude"
 ENV MAX_ITERATIONS="10"
 
